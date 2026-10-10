@@ -1,0 +1,459 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>我的物品</title>
+<meta name="theme-color" content="#2f6f5e">
+<style>
+:root{
+  --bg:#f5f3ee; --card:#ffffff; --text:#1f2421; --muted:#6b726d; --line:#e3e0d8;
+  --brand:#2f6f5e; --brand-ink:#ffffff;
+  --red:#c2412d; --red-bg:#fbe9e5; --amber:#a86a00; --amber-bg:#fff3d6; --ok:#2f6f5e; --ok-bg:#e4f1ec;
+  --radius:14px;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#151816; --card:#1f2421; --text:#ecefeb; --muted:#9aa39d; --line:#2e3430;
+    --brand:#5fb59b; --brand-ink:#0f1a16;
+    --red:#ff8a75; --red-bg:#3a1f1a; --amber:#f2c35b; --amber-bg:#3a2f14; --ok:#7fcfb5; --ok-bg:#183129;
+  }
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+  -webkit-tap-highlight-color:transparent}
+button,input,select,textarea{font:inherit;color:inherit}
+header{position:sticky;top:0;z-index:5;background:var(--bg);padding:14px 16px 8px;
+  padding-top:max(14px,env(safe-area-inset-top))}
+.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
+h1{font-size:22px;margin:0;letter-spacing:.5px}
+.link{background:none;border:0;color:var(--muted);font-size:14px;padding:6px}
+.chips{display:flex;gap:8px;margin-top:12px;overflow-x:auto}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 13px;font-size:14px}
+.chip b{margin-left:4px}
+.chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
+.chip.red b{color:var(--red)} .chip.amber b{color:var(--amber)}
+.chip.on b{color:inherit}
+.tools{display:flex;gap:8px;margin-top:10px}
+.tools input,.tools select{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 11px;font-size:15px}
+.tools input{flex:1;min-width:0}
+.tools select{max-width:38%}
+main{padding:4px 16px 110px}
+.card{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
+  border-left:5px solid transparent;border-radius:var(--radius);padding:10px;margin-top:10px;cursor:pointer}
+.card.expired{border-left-color:var(--red)} .card.soon{border-left-color:var(--amber)}
+.card.empty{opacity:.55}
+.thumb{width:56px;height:56px;border-radius:10px;background:var(--bg);flex:0 0 56px;
+  display:grid;place-items:center;overflow:hidden;font-size:24px;color:var(--muted)}
+.thumb img{width:100%;height:100%;object-fit:cover}
+.info{flex:1;min-width:0}
+.name{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meta{font-size:13px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.badge{display:inline-block;font-size:12px;border-radius:6px;padding:2px 7px;margin-top:5px}
+.badge.expired{background:var(--red-bg);color:var(--red)}
+.badge.soon{background:var(--amber-bg);color:var(--amber)}
+.badge.ok{background:var(--ok-bg);color:var(--ok)}
+.qty{display:flex;align-items:center;gap:2px}
+.qty button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--bg);font-size:18px;line-height:1}
+.qty span{min-width:26px;text-align:center;font-weight:600}
+.emptystate{text-align:center;color:var(--muted);padding:60px 20px;line-height:1.7}
+#fab{position:fixed;right:20px;bottom:max(22px,env(safe-area-inset-bottom));width:60px;height:60px;border-radius:50%;
+  border:0;background:var(--brand);color:var(--brand-ink);font-size:32px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+#login{padding:80px 24px;text-align:center;line-height:1.7}
+.btn{border:0;border-radius:12px;padding:12px 18px;font-size:16px;background:var(--brand);color:var(--brand-ink);font-weight:600}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
+.btn.danger{background:transparent;color:var(--red);border:1px solid var(--red)}
+dialog{border:0;border-radius:18px;padding:0;width:min(520px,94vw);max-height:92vh;background:var(--card);color:var(--text)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+form{padding:18px}
+form h2{margin:0 0 12px;font-size:19px}
+.photo{width:100%;aspect-ratio:4/3;border-radius:12px;background:var(--bg);border:1px dashed var(--line);
+  display:grid;place-items:center;overflow:hidden;color:var(--muted);position:relative}
+.photo img{width:100%;height:100%;object-fit:contain}
+.photorow{display:flex;gap:8px;margin-top:8px}
+.photorow .btn{flex:1;padding:10px;font-size:15px}
+label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
+.f{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 11px;font-size:16px}
+.row{display:flex;gap:10px} .row>div{flex:1;min-width:0}
+.warn{background:var(--amber-bg);color:var(--amber);border-radius:10px;padding:8px 10px;font-size:14px;margin-top:8px}
+.actions{display:flex;gap:8px;margin-top:18px}
+.actions .grow{flex:1}
+.hint{font-size:13px;color:var(--muted)}
+[hidden]{display:none!important}
+</style>
+</head>
+<body>
+
+<div id="setup" class="emptystate" hidden>
+  <h2>還沒設定 Firebase</h2>
+  請在 index.html 裡找到 <code>firebaseConfig</code>,貼上你 Firebase 專案的設定後重新整理。
+</div>
+
+<div id="login" hidden>
+  <h1>📦 我的物品</h1>
+  <p class="hint">記錄東西有幾個、什麼時候過期</p>
+  <button class="btn" id="loginBtn">用 Google 登入</button>
+</div>
+
+<div id="app" hidden>
+  <header>
+    <div class="top">
+      <h1>📦 我的物品</h1>
+      <button class="link" id="logoutBtn">登出</button>
+    </div>
+    <div class="chips" id="chips"></div>
+    <div class="tools">
+      <input id="search" type="search" placeholder="搜尋(買之前先查一下!)">
+      <select id="catFilter"></select>
+    </div>
+  </header>
+  <main id="list"></main>
+  <button id="fab" aria-label="新增物品">＋</button>
+</div>
+
+<dialog id="editor">
+  <form id="form" method="dialog">
+    <h2 id="formTitle">新增物品</h2>
+
+    <div class="photo" id="photoBox"><span>還沒有照片</span></div>
+    <div class="photorow">
+      <button type="button" class="btn ghost" id="pickPhoto">📷 拍照 / 選照片</button>
+      <button type="button" class="btn ghost" id="removePhoto" hidden>移除</button>
+    </div>
+    <input type="file" id="fileInput" accept="image/*" hidden>
+
+    <label for="fName">名稱 *</label>
+    <input class="f" id="fName" required autocomplete="off">
+    <div class="warn" id="dupWarn" hidden></div>
+
+    <div class="row">
+      <div>
+        <label for="fQty">數量</label>
+        <input class="f" id="fQty" type="number" inputmode="numeric" min="0" value="1">
+      </div>
+      <div>
+        <label for="fExpiry">過期日</label>
+        <input class="f" id="fExpiry" type="date">
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="fCat">分類</label>
+        <input class="f" id="fCat" list="catList" placeholder="例:食品、保養品">
+      </div>
+      <div>
+        <label for="fLoc">存放位置</label>
+        <input class="f" id="fLoc" list="locList" placeholder="例:廚房上櫃">
+      </div>
+    </div>
+    <datalist id="catList"></datalist>
+    <datalist id="locList"></datalist>
+
+    <label for="fNote">備註</label>
+    <textarea class="f" id="fNote" rows="2"></textarea>
+
+    <div class="actions">
+      <button type="button" class="btn danger" id="delBtn" hidden>刪除</button>
+      <span class="grow"></span>
+      <button type="button" class="btn ghost" id="cancelBtn">取消</button>
+      <button type="submit" class="btn" id="saveBtn">儲存</button>
+    </div>
+  </form>
+</dialog>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
+  collection, doc, addDoc, updateDoc, deleteDoc, setDoc, getDoc, onSnapshot, serverTimestamp }
+  from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+/* ====== 1. 把你 Firebase 專案的設定貼在這裡 ====== */
+const firebaseConfig = {
+  apiKey: "請貼上",
+  authDomain: "",
+  projectId: "",
+  storageBucket: "",
+  messagingSenderId: "",
+  appId: ""
+};
+/* 幾天內算「快過期」 */
+const SOON_DAYS = 7;
+/* ================================================ */
+
+const $ = id => document.getElementById(id);
+if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("請")) {
+  $("setup").hidden = false;
+  throw new Error("Firebase not configured");
+}
+
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = initializeFirestore(app, {
+  localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+});
+
+let uid = null, unsub = null, items = [];
+const state = { view: "all", q: "", cat: "" };
+let editing = null;          // item id or null
+let photo = { changed: false, full: null, thumb: null };
+
+/* ---------- 登入 ---------- */
+$("loginBtn").onclick = async () => {
+  const p = new GoogleAuthProvider();
+  try { await signInWithPopup(auth, p); }
+  catch (e) { await signInWithRedirect(auth, p); }
+};
+$("logoutBtn").onclick = () => signOut(auth);
+
+onAuthStateChanged(auth, user => {
+  if (unsub) { unsub(); unsub = null; }
+  uid = user ? user.uid : null;
+  $("login").hidden = !!user;
+  $("app").hidden = !user;
+  if (!user) return;
+  unsub = onSnapshot(collection(db, "users", uid, "items"), snap => {
+    items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    render();
+  }, err => alert("讀取失敗:" + err.message));
+});
+
+/* ---------- 工具 ---------- */
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
+  ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const norm = s => String(s ?? "").trim().toLowerCase();
+
+function daysLeft(exp) {
+  if (!exp) return null;
+  const [y, m, d] = exp.split("-").map(Number);
+  const t = new Date(y, m - 1, d);
+  const n = new Date(); n.setHours(0, 0, 0, 0);
+  return Math.round((t - n) / 86400000);
+}
+function statusOf(it) {
+  const d = daysLeft(it.expiry);
+  if (d === null) return "none";
+  if (d < 0) return "expired";
+  if (d <= SOON_DAYS) return "soon";
+  return "ok";
+}
+function expiryText(it) {
+  const d = daysLeft(it.expiry);
+  if (d === null) return "";
+  if (d < 0) return `已過期 ${-d} 天`;
+  if (d === 0) return "今天到期";
+  if (d <= SOON_DAYS) return `還有 ${d} 天`;
+  return `到期 ${it.expiry}`;
+}
+
+/* ---------- 畫面 ---------- */
+function render() {
+  const cnt = { all: items.length, expired: 0, soon: 0 };
+  items.forEach(it => { const s = statusOf(it); if (s in cnt) cnt[s]++; });
+
+  $("chips").innerHTML = [
+    ["all", "全部", ""], ["expired", "已過期", "red"], ["soon", `${SOON_DAYS}天內到期`, "amber"]
+  ].map(([k, t, c]) =>
+    `<button class="chip ${c} ${state.view === k ? "on" : ""}" data-view="${k}">${t}<b>${cnt[k]}</b></button>`
+  ).join("");
+
+  const cats = [...new Set(items.map(i => (i.category || "").trim()).filter(Boolean))].sort();
+  const locs = [...new Set(items.map(i => (i.location || "").trim()).filter(Boolean))].sort();
+  if (state.cat && !cats.includes(state.cat)) state.cat = "";
+  $("catFilter").innerHTML = `<option value="">所有分類</option>` +
+    cats.map(c => `<option ${c === state.cat ? "selected" : ""}>${esc(c)}</option>`).join("");
+  $("catList").innerHTML = cats.map(c => `<option value="${esc(c)}">`).join("");
+  $("locList").innerHTML = locs.map(c => `<option value="${esc(c)}">`).join("");
+
+  const q = norm(state.q);
+  const list = items.filter(it => {
+    const s = statusOf(it);
+    if (state.view !== "all" && s !== state.view) return false;
+    if (state.cat && (it.category || "").trim() !== state.cat) return false;
+    if (q && ![it.name, it.category, it.location, it.note].some(v => norm(v).includes(q))) return false;
+    return true;
+  }).sort((a, b) => {
+    const da = daysLeft(a.expiry), dbb = daysLeft(b.expiry);
+    if (da !== null && dbb !== null && da !== dbb) return da - dbb;
+    if (da !== null && dbb === null) return -1;
+    if (da === null && dbb !== null) return 1;
+    return (a.name || "").localeCompare(b.name || "", "zh-Hant");
+  });
+
+  if (!list.length) {
+    $("list").innerHTML = `<div class="emptystate">${items.length
+      ? "沒有符合的物品"
+      : "還沒有任何物品<br>按右下角 ＋ 開始記錄"}</div>`;
+    return;
+  }
+
+  $("list").innerHTML = list.map(it => {
+    const s = statusOf(it);
+    const meta = [it.category, it.location].filter(Boolean).map(esc).join(" · ");
+    const exp = expiryText(it);
+    return `<article class="card ${s} ${(it.qty ?? 0) <= 0 ? "empty" : ""}" data-id="${it.id}">
+      <div class="thumb">${it.thumb ? `<img src="${it.thumb}" alt="">` : "📦"}</div>
+      <div class="info">
+        <div class="name">${esc(it.name)}</div>
+        ${meta ? `<div class="meta">${meta}</div>` : ""}
+        ${exp ? `<span class="badge ${s}">${exp}</span>` : ""}
+        ${(it.qty ?? 0) <= 0 ? `<span class="badge">已用完</span>` : ""}
+      </div>
+      <div class="qty">
+        <button data-act="dec" aria-label="減少">−</button>
+        <span>${it.qty ?? 0}</span>
+        <button data-act="inc" aria-label="增加">＋</button>
+      </div>
+    </article>`;
+  }).join("");
+}
+
+$("chips").onclick = e => {
+  const b = e.target.closest("[data-view]"); if (!b) return;
+  state.view = b.dataset.view; render();
+};
+$("search").oninput = e => { state.q = e.target.value; render(); };
+$("catFilter").onchange = e => { state.cat = e.target.value; render(); };
+
+$("list").onclick = async e => {
+  const card = e.target.closest(".card"); if (!card) return;
+  const it = items.find(i => i.id === card.dataset.id); if (!it) return;
+  const act = e.target.closest("[data-act]")?.dataset.act;
+  if (act) {
+    const q = Math.max(0, (it.qty ?? 0) + (act === "inc" ? 1 : -1));
+    await updateDoc(doc(db, "users", uid, "items", it.id), { qty: q, updatedAt: serverTimestamp() });
+    return;
+  }
+  openEditor(it);
+};
+
+/* ---------- 編輯視窗 ---------- */
+function setPhotoBox(src) {
+  $("photoBox").innerHTML = src ? `<img src="${src}" alt="">` : `<span>還沒有照片</span>`;
+  $("removePhoto").hidden = !src;
+}
+
+async function openEditor(it) {
+  editing = it ? it.id : null;
+  photo = { changed: false, full: null, thumb: null };
+  $("formTitle").textContent = it ? "編輯物品" : "新增物品";
+  $("fName").value = it?.name || "";
+  $("fQty").value = it ? (it.qty ?? 0) : 1;
+  $("fExpiry").value = it?.expiry || "";
+  $("fCat").value = it?.category || "";
+  $("fLoc").value = it?.location || "";
+  $("fNote").value = it?.note || "";
+  $("delBtn").hidden = !it;
+  $("dupWarn").hidden = true;
+  setPhotoBox(it?.thumb || null);
+  $("editor").showModal();
+  if (it?.hasPhoto) {
+    try {
+      const snap = await getDoc(doc(db, "users", uid, "photos", it.id));
+      if (snap.exists() && editing === it.id && !photo.changed) setPhotoBox(snap.data().data);
+    } catch (e) { /* 縮圖已顯示,忽略 */ }
+  }
+}
+
+$("fab").onclick = () => openEditor(null);
+$("cancelBtn").onclick = () => $("editor").close();
+
+// 新增時,名稱跟現有物品重複就提醒
+$("fName").oninput = () => {
+  if (editing) return;
+  const n = norm($("fName").value);
+  const hits = n ? items.filter(i => norm(i.name) === n || (n.length >= 2 && norm(i.name).includes(n))) : [];
+  const w = $("dupWarn");
+  if (!hits.length) { w.hidden = true; return; }
+  w.hidden = false;
+  w.innerHTML = "⚠️ 你已經有:" + hits.slice(0, 4).map(h =>
+    `${esc(h.name)} ×${h.qty ?? 0}${h.location ? `(${esc(h.location)})` : ""}${h.expiry ? `,${expiryText(h)}` : ""}`
+  ).join(";");
+};
+
+/* ---------- 照片 ---------- */
+$("pickPhoto").onclick = () => $("fileInput").click();
+$("removePhoto").onclick = () => { photo = { changed: true, full: null, thumb: null }; setPhotoBox(null); };
+
+function loadImage(file) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => { URL.revokeObjectURL(url); res(img); };
+    img.onerror = rej;
+    img.src = url;
+  });
+}
+function toJpeg(img, max, quality) {
+  const scale = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement("canvas");
+  c.width = Math.round(img.naturalWidth * scale);
+  c.height = Math.round(img.naturalHeight * scale);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  return c.toDataURL("image/jpeg", quality);
+}
+
+$("fileInput").onchange = async e => {
+  const file = e.target.files[0]; e.target.value = "";
+  if (!file) return;
+  try {
+    const img = await loadImage(file);
+    let q = 0.75, full = toJpeg(img, 1280, q);
+    while (full.length > 700000 && q > 0.3) { q -= 0.1; full = toJpeg(img, 1100, q); }
+    photo = { changed: true, full, thumb: toJpeg(img, 240, 0.7) };
+    setPhotoBox(full);
+  } catch (err) { alert("照片讀取失敗,請換一張試試"); }
+};
+
+/* ---------- 儲存 / 刪除 ---------- */
+$("form").onsubmit = async e => {
+  e.preventDefault();
+  const name = $("fName").value.trim();
+  if (!name) return;
+  const data = {
+    name,
+    qty: Math.max(0, parseInt($("fQty").value, 10) || 0),
+    expiry: $("fExpiry").value || null,
+    category: $("fCat").value.trim(),
+    location: $("fLoc").value.trim(),
+    note: $("fNote").value.trim(),
+    updatedAt: serverTimestamp()
+  };
+  if (photo.changed) { data.thumb = photo.thumb; data.hasPhoto = !!photo.full; }
+
+  $("saveBtn").disabled = true;
+  try {
+    let id = editing;
+    if (id) {
+      await updateDoc(doc(db, "users", uid, "items", id), data);
+    } else {
+      data.createdAt = serverTimestamp();
+      if (!photo.changed) { data.thumb = null; data.hasPhoto = false; }
+      id = (await addDoc(collection(db, "users", uid, "items"), data)).id;
+    }
+    if (photo.changed) {
+      const ref = doc(db, "users", uid, "photos", id);
+      if (photo.full) await setDoc(ref, { data: photo.full });
+      else await deleteDoc(ref);
+    }
+    $("editor").close();
+  } catch (err) {
+    alert("儲存失敗:" + err.message);
+  } finally {
+    $("saveBtn").disabled = false;
+  }
+};
+
+$("delBtn").onclick = async () => {
+  if (!editing || !confirm("確定要刪除這個物品?")) return;
+  const id = editing;
+  $("editor").close();
+  await deleteDoc(doc(db, "users", uid, "items", id));
+  await deleteDoc(doc(db, "users", uid, "photos", id)).catch(() => {});
+};
+</script>
+</body>
+</html>
