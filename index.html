@@ -4,82 +4,97 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>我的物品</title>
-<meta name="theme-color" content="#2f6f5e">
+<meta name="theme-color" content="#faf9f5">
 <style>
 :root{
-  --bg:#f5f3ee; --card:#ffffff; --text:#1f2421; --muted:#6b726d; --line:#e3e0d8;
-  --brand:#2f6f5e; --brand-ink:#ffffff;
-  --red:#c2412d; --red-bg:#fbe9e5; --amber:#a86a00; --amber-bg:#fff3d6; --ok:#2f6f5e; --ok-bg:#e4f1ec;
-  --radius:14px;
-}
-@media (prefers-color-scheme: dark){
-  :root{
-    --bg:#151816; --card:#1f2421; --text:#ecefeb; --muted:#9aa39d; --line:#2e3430;
-    --brand:#5fb59b; --brand-ink:#0f1a16;
-    --red:#ff8a75; --red-bg:#3a1f1a; --amber:#f2c35b; --amber-bg:#3a2f14; --ok:#7fcfb5; --ok-bg:#183129;
-  }
+  --bg:#faf9f5; --card:#faf9f5; --field:#f0eee6; --text:#1f1e1c; --muted:#8a867b; --line:#e8e4d9;
+  --brand:#c96442; --brand-ink:#ffffff;
+  --red:#b5452f; --amber:#a8731c;
 }
 *{box-sizing:border-box}
 html,body{margin:0;background:var(--bg);color:var(--text);
   font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
   -webkit-tap-highlight-color:transparent}
 button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+.serif{font-family:"Noto Serif TC","Source Han Serif TC","Songti TC",Georgia,serif}
+
 header{position:sticky;top:0;z-index:5;background:var(--bg);padding:14px 16px 8px;
   padding-top:max(14px,env(safe-area-inset-top))}
-.top{display:flex;align-items:center;justify-content:space-between;gap:8px}
-h1{font-size:22px;margin:0;letter-spacing:.5px}
+.top{display:flex;align-items:center;gap:6px;min-height:40px}
+.top h1{flex:1;min-width:0;font-size:26px;font-weight:600;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.back{background:none;border:0;font-size:30px;line-height:1;padding:0 6px 4px 0;color:var(--brand)}
 .link{background:none;border:0;color:var(--muted);font-size:14px;padding:6px}
 .chips{display:flex;gap:8px;margin-top:12px;overflow-x:auto}
-.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:7px 13px;font-size:14px}
+.chips:empty{display:none}
+.chip{flex:0 0 auto;border:1px solid var(--line);background:var(--card);border-radius:8px;padding:7px 13px;font-size:14px}
 .chip b{margin-left:4px}
-.chip.on{background:var(--text);color:var(--bg);border-color:var(--text)}
 .chip.red b{color:var(--red)} .chip.amber b{color:var(--amber)}
+.chip.on{background:var(--brand);border-color:var(--brand);color:#fff}
 .chip.on b{color:inherit}
-.tools{display:flex;gap:8px;margin-top:10px}
-.tools input,.tools select{border:1px solid var(--line);background:var(--card);border-radius:10px;padding:9px 11px;font-size:15px}
-.tools input{flex:1;min-width:0}
-.tools select{max-width:38%}
+.search{width:100%;margin-top:10px;border:0;background:var(--field);border-radius:10px;padding:10px 12px;font-size:15px}
 main{padding:4px 16px 110px}
-.card{display:flex;align-items:center;gap:12px;background:var(--card);border:1px solid var(--line);
-  border-left:5px solid transparent;border-radius:var(--radius);padding:10px;margin-top:10px;cursor:pointer}
-.card.expired{border-left-color:var(--red)} .card.soon{border-left-color:var(--amber)}
-.card.empty{opacity:.55}
-.thumb{width:56px;height:56px;border-radius:10px;background:var(--bg);flex:0 0 56px;
-  display:grid;place-items:center;overflow:hidden;font-size:24px;color:var(--muted)}
+
+/* 區域列表 */
+.arow{display:flex;align-items:center;gap:14px;padding:16px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+.aemoji{width:46px;height:46px;border-radius:14px;background:var(--field);display:grid;place-items:center;font-size:24px;flex:0 0 46px}
+.arow .name{font-size:18px}
+.flags{font-size:13px;margin-top:3px}
+.flags .r{color:var(--red);font-weight:600;margin-right:8px}
+.flags .a{color:var(--amber);font-weight:600;margin-right:8px}
+.chev{color:var(--muted);font-size:22px}
+.addarea{display:block;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);
+  color:var(--brand);padding:18px 2px;font-size:16px}
+
+/* 物品列表 */
+.card{display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--line);padding:14px 2px;cursor:pointer}
+.card.empty{opacity:.5}
+.thumb{width:52px;height:52px;border-radius:50%;background:var(--field);flex:0 0 52px;
+  display:grid;place-items:center;overflow:hidden;font-size:22px;color:var(--muted)}
 .thumb img{width:100%;height:100%;object-fit:cover}
 .info{flex:1;min-width:0}
 .name{font-weight:600;font-size:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.card.expired .name::before{content:"● ";color:var(--red)}
+.card.soon .name::before{content:"● ";color:var(--amber)}
 .meta{font-size:13px;color:var(--muted);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.badge{display:inline-block;font-size:12px;border-radius:6px;padding:2px 7px;margin-top:5px}
-.badge.expired{background:var(--red-bg);color:var(--red)}
-.badge.soon{background:var(--amber-bg);color:var(--amber)}
-.badge.ok{background:var(--ok-bg);color:var(--ok)}
+.badge{display:inline-block;font-size:13px;font-weight:600;margin-top:3px;margin-right:6px;color:var(--muted)}
+.badge.expired{color:var(--red)} .badge.soon{color:var(--amber)}
 .qty{display:flex;align-items:center;gap:2px}
-.qty button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:var(--bg);font-size:18px;line-height:1}
+.qty button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:transparent;font-size:18px;line-height:1}
 .qty span{min-width:26px;text-align:center;font-weight:600}
-.emptystate{text-align:center;color:var(--muted);padding:60px 20px;line-height:1.7}
-#fab{position:fixed;right:20px;bottom:max(22px,env(safe-area-inset-bottom));width:60px;height:60px;border-radius:50%;
-  border:0;background:var(--brand);color:var(--brand-ink);font-size:32px;box-shadow:0 6px 18px rgba(0,0,0,.25)}
-#login{padding:80px 24px;text-align:center;line-height:1.7}
+.emptystate{text-align:center;color:var(--muted);padding:56px 20px;line-height:1.8}
+.emptystate .btn{margin-top:14px}
+
+#fab{position:fixed;right:20px;bottom:max(22px,env(safe-area-inset-bottom));min-width:58px;height:58px;border-radius:16px;
+  border:0;background:var(--brand);color:var(--brand-ink);font-size:16px;font-weight:600;padding:0 18px;
+  box-shadow:0 6px 18px rgba(60,40,20,.25)}
+#login{padding:72px 24px;text-align:center;line-height:1.7}
+#login h1{font-size:28px;margin:0 0 4px}
 .btn{border:0;border-radius:12px;padding:12px 18px;font-size:16px;background:var(--brand);color:var(--brand-ink);font-weight:600}
 .btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line)}
 .btn.danger{background:transparent;color:var(--red);border:1px solid var(--red)}
-dialog{border:0;border-radius:18px;padding:0;width:min(520px,94vw);max-height:92vh;background:var(--card);color:var(--text)}
-dialog::backdrop{background:rgba(0,0,0,.45)}
+.btn:disabled{opacity:.5}
+
+dialog{border:0;border-radius:18px;padding:0;width:min(520px,94vw);max-height:92vh;background:var(--bg);color:var(--text)}
+dialog::backdrop{background:rgba(30,25,15,.45)}
 form{padding:18px}
-form h2{margin:0 0 12px;font-size:19px}
-.photo{width:100%;aspect-ratio:4/3;border-radius:12px;background:var(--bg);border:1px dashed var(--line);
-  display:grid;place-items:center;overflow:hidden;color:var(--muted);position:relative}
+form h2{margin:0 0 12px;font-size:20px;font-weight:600}
+.photo{width:100%;aspect-ratio:4/3;border-radius:12px;background:var(--field);
+  display:grid;place-items:center;overflow:hidden;color:var(--muted)}
 .photo img{width:100%;height:100%;object-fit:contain}
 .photorow{display:flex;gap:8px;margin-top:8px}
 .photorow .btn{flex:1;padding:10px;font-size:15px}
 label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
-.f{width:100%;border:1px solid var(--line);background:var(--bg);border-radius:10px;padding:10px 11px;font-size:16px}
+.f{width:100%;border:1px solid transparent;background:var(--field);border-radius:10px;padding:10px 11px;font-size:16px}
+.f:focus{outline:none;border-color:var(--brand)}
 .row{display:flex;gap:10px} .row>div{flex:1;min-width:0}
-.warn{background:var(--amber-bg);color:var(--amber);border-radius:10px;padding:8px 10px;font-size:14px;margin-top:8px}
+.warn{background:#f6ead6;color:#8a5a12;border-radius:10px;padding:8px 10px;font-size:14px;margin-top:8px}
 .actions{display:flex;gap:8px;margin-top:18px}
 .actions .grow{flex:1}
 .hint{font-size:13px;color:var(--muted)}
+.emojis{display:flex;flex-wrap:wrap;gap:8px}
+.emojis button{width:44px;height:44px;border-radius:12px;border:1px solid transparent;background:var(--field);font-size:22px}
+.emojis button.on{border-color:var(--brand);background:#f4e4dc}
 [hidden]{display:none!important}
 </style>
 </head>
@@ -91,27 +106,53 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
 </div>
 
 <div id="login" hidden>
-  <h1>📦 我的物品</h1>
-  <p class="hint">記錄東西有幾個、什麼時候過期</p>
+  <h1 class="serif">📦 我的物品</h1>
+  <p class="hint">記錄東西放在哪、有幾個、什麼時候過期</p>
   <button class="btn" id="loginBtn">用 Google 登入</button>
+  <div style="max-width:320px;margin:28px auto 0;text-align:left">
+    <p class="hint" style="text-align:center">或用電子郵件登入</p>
+    <input class="f" id="email" type="email" placeholder="電子郵件" autocomplete="email">
+    <input class="f" id="pw" type="password" placeholder="密碼(至少 6 碼)" autocomplete="current-password" style="margin-top:8px">
+    <div class="row" style="margin-top:10px">
+      <button class="btn" id="emailLogin" style="flex:1">登入</button>
+      <button class="btn ghost" id="emailSignup" style="flex:1">建立帳號</button>
+    </div>
+  </div>
+  <p class="warn" id="loginErr" hidden style="max-width:320px;margin:16px auto 0"></p>
 </div>
 
 <div id="app" hidden>
   <header>
     <div class="top">
-      <h1>📦 我的物品</h1>
-      <button class="link" id="logoutBtn">登出</button>
+      <button class="back" id="backBtn" hidden aria-label="返回">‹</button>
+      <h1 class="serif" id="title">我的物品</h1>
+      <button class="link" id="topLink">登出</button>
     </div>
     <div class="chips" id="chips"></div>
-    <div class="tools">
-      <input id="search" type="search" placeholder="搜尋(買之前先查一下!)">
-      <select id="catFilter"></select>
-    </div>
+    <input class="search" id="search" type="search" placeholder="搜尋全部(買之前先查一下!)">
   </header>
   <main id="list"></main>
-  <button id="fab" aria-label="新增物品">＋</button>
+  <button id="fab">＋ 區域</button>
 </div>
 
+<!-- 區域編輯 -->
+<dialog id="areaDlg">
+  <form id="areaForm" method="dialog">
+    <h2 id="areaTitle">新增區域</h2>
+    <label for="aName">區域名稱 *</label>
+    <input class="f" id="aName" required autocomplete="off" placeholder="例:廚房、浴室、臥室衣櫃">
+    <label>圖示</label>
+    <div class="emojis" id="emojiPick"></div>
+    <div class="actions">
+      <button type="button" class="btn danger" id="aDel" hidden>刪除</button>
+      <span class="grow"></span>
+      <button type="button" class="btn ghost" id="aCancel">取消</button>
+      <button type="submit" class="btn" id="aSave">儲存</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 物品編輯 -->
 <dialog id="editor">
   <form id="form" method="dialog">
     <h2 id="formTitle">新增物品</h2>
@@ -140,15 +181,14 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
 
     <div class="row">
       <div>
-        <label for="fCat">分類</label>
-        <input class="f" id="fCat" list="catList" placeholder="例:食品、保養品">
+        <label for="fArea">區域</label>
+        <select class="f" id="fArea"></select>
       </div>
       <div>
-        <label for="fLoc">存放位置</label>
-        <input class="f" id="fLoc" list="locList" placeholder="例:廚房上櫃">
+        <label for="fLoc">細部位置</label>
+        <input class="f" id="fLoc" list="locList" placeholder="例:上櫃、第二層">
       </div>
     </div>
-    <datalist id="catList"></datalist>
     <datalist id="locList"></datalist>
 
     <label for="fNote">備註</label>
@@ -165,13 +205,14 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, onAuthStateChanged, signOut }
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut,
+  signInWithEmailAndPassword, createUserWithEmailAndPassword }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import { initializeFirestore, persistentLocalCache, persistentMultipleTabManager,
   collection, doc, addDoc, updateDoc, deleteDoc, setDoc, getDoc, onSnapshot, serverTimestamp }
   from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-/* ====== 1. 把你 Firebase 專案的設定貼在這裡 ====== */
+/* ====== Firebase 設定 ====== */
 const firebaseConfig = {
   apiKey: "AIzaSyAWq6AH_ScRfbS4oeKo8c5kUX7AiMzhKFw",
   authDomain: "goods-ecfab.firebaseapp.com",
@@ -183,7 +224,9 @@ const firebaseConfig = {
 };
 /* 幾天內算「快過期」 */
 const SOON_DAYS = 7;
-/* ================================================ */
+/* 區域可選的圖示 */
+const EMOJIS = ["🍳","🧊","🛁","🛏️","👕","🧴","💊","🧹","🗄️","📚","🚪","🚗","🏢","📦"];
+/* ========================== */
 
 const $ = id => document.getElementById(id);
 if (!firebaseConfig.apiKey || firebaseConfig.apiKey.startsWith("請")) {
@@ -197,35 +240,78 @@ const db = initializeFirestore(app, {
   localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
 });
 
-let uid = null, unsub = null, items = [];
-const state = { view: "all", q: "", cat: "" };
-let editing = null;          // item id or null
+let uid = null, unsubs = [], items = [], areas = [];
+const state = { area: null, view: "all", q: "" };   // area: null = 首頁
+let editing = null, editingArea = null;
 let photo = { changed: false, full: null, thumb: null };
+const NO_AREA = "__none__";
 
 /* ---------- 登入 ---------- */
-$("loginBtn").onclick = async () => {
-  const p = new GoogleAuthProvider();
-  try { await signInWithPopup(auth, p); }
-  catch (e) { await signInWithRedirect(auth, p); }
+const loginMsg = {
+  "auth/popup-blocked": "彈出視窗被擋住了,請允許此網站的彈出視窗,或改用電子郵件登入。",
+  "auth/popup-closed-by-user": "登入視窗被關閉了,請再試一次。",
+  "auth/cancelled-popup-request": "登入視窗被關閉了,請再試一次。",
+  "auth/unauthorized-domain": "這個網域還沒加入 Firebase 的授權網域。",
+  "auth/operation-not-allowed": "Firebase 裡還沒啟用這種登入方式。",
+  "auth/invalid-credential": "電子郵件或密碼錯誤。",
+  "auth/wrong-password": "電子郵件或密碼錯誤。",
+  "auth/user-not-found": "找不到這個帳號,請先按「建立帳號」。",
+  "auth/email-already-in-use": "這個信箱已經建立過帳號,請直接登入。",
+  "auth/weak-password": "密碼至少要 6 碼。",
+  "auth/invalid-email": "電子郵件格式不正確。"
 };
-$("logoutBtn").onclick = () => signOut(auth);
+function showLoginErr(e) {
+  const box = $("loginErr");
+  box.hidden = false;
+  box.textContent = (loginMsg[e.code] || e.message || "登入失敗") + (e.code ? `(${e.code})` : "");
+}
+$("loginBtn").onclick = async () => {
+  $("loginErr").hidden = true;
+  try { await signInWithPopup(auth, new GoogleAuthProvider()); }
+  catch (e) { showLoginErr(e); }
+};
+async function emailAuth(create) {
+  $("loginErr").hidden = true;
+  const em = $("email").value.trim(), pw = $("pw").value;
+  if (!em || !pw) { showLoginErr({ message: "請輸入電子郵件和密碼" }); return; }
+  try {
+    if (create) await createUserWithEmailAndPassword(auth, em, pw);
+    else await signInWithEmailAndPassword(auth, em, pw);
+  } catch (e) { showLoginErr(e); }
+}
+$("emailLogin").onclick = () => emailAuth(false);
+$("emailSignup").onclick = () => emailAuth(true);
 
 onAuthStateChanged(auth, user => {
-  if (unsub) { unsub(); unsub = null; }
+  unsubs.forEach(u => u()); unsubs = [];
   uid = user ? user.uid : null;
   $("login").hidden = !!user;
   $("app").hidden = !user;
   if (!user) return;
-  unsub = onSnapshot(collection(db, "users", uid, "items"), snap => {
+  Object.assign(state, { area: null, view: "all", q: "" });
+  $("search").value = "";
+  const onErr = err => alert("讀取失敗:" + err.message);
+  unsubs.push(onSnapshot(collection(db, "users", uid, "areas"), snap => {
+    areas = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+      .sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    render();
+  }, onErr));
+  unsubs.push(onSnapshot(collection(db, "users", uid, "items"), snap => {
     items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     render();
-  }, err => alert("讀取失敗:" + err.message));
+  }, onErr));
 });
 
 /* ---------- 工具 ---------- */
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c =>
   ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const norm = s => String(s ?? "").trim().toLowerCase();
+const areaOf = it => areas.find(a => a.id === it.areaId);
+const areaKey = it => areaOf(it) ? it.areaId : NO_AREA;
+const areaLabel = id => {
+  if (id === NO_AREA) return { emoji: "📦", name: "未分區" };
+  return areas.find(a => a.id === id) || { emoji: "📦", name: "未分區" };
+};
 
 function daysLeft(exp) {
   if (!exp) return null;
@@ -249,77 +335,142 @@ function expiryText(it) {
   if (d <= SOON_DAYS) return `還有 ${d} 天`;
   return `到期 ${it.expiry}`;
 }
+function byExpiry(a, b) {
+  const da = daysLeft(a.expiry), dbb = daysLeft(b.expiry);
+  if (da !== null && dbb !== null && da !== dbb) return da - dbb;
+  if (da !== null && dbb === null) return -1;
+  if (da === null && dbb !== null) return 1;
+  return (a.name || "").localeCompare(b.name || "", "zh-Hant");
+}
+function counts(list) {
+  const c = { all: list.length, expired: 0, soon: 0 };
+  list.forEach(it => { const s = statusOf(it); if (s in c) c[s]++; });
+  return c;
+}
 
 /* ---------- 畫面 ---------- */
 function render() {
-  const cnt = { all: items.length, expired: 0, soon: 0 };
-  items.forEach(it => { const s = statusOf(it); if (s in cnt) cnt[s]++; });
+  const inArea = state.area !== null;
+  if (inArea && state.area !== NO_AREA && !areas.some(a => a.id === state.area)) state.area = null;
+  const scope = inArea ? items.filter(it => areaKey(it) === state.area) : items;
+  const cnt = counts(scope);
 
-  $("chips").innerHTML = [
-    ["all", "全部", ""], ["expired", "已過期", "red"], ["soon", `${SOON_DAYS}天內到期`, "amber"]
-  ].map(([k, t, c]) =>
+  // 標題列
+  const a = inArea ? areaLabel(state.area) : null;
+  $("title").textContent = inArea ? `${a.emoji} ${a.name}` : "📦 我的物品";
+  $("backBtn").hidden = !(inArea || state.view !== "all" || state.q);
+  $("topLink").textContent = inArea ? (state.area === NO_AREA ? "" : "編輯區域") : "登出";
+  $("topLink").hidden = inArea && state.area === NO_AREA;
+  $("search").placeholder = inArea ? `在「${a.name}」裡搜尋` : "搜尋全部(買之前先查一下!)";
+  $("fab").textContent = inArea ? "＋ 物品" : "＋ 區域";
+  $("fab").hidden = inArea && state.area === NO_AREA;
+
+  // 篩選標籤
+  const chipDefs = inArea
+    ? [["all", "全部", ""], ["expired", "已過期", "red"], ["soon", `${SOON_DAYS}天內到期`, "amber"]]
+    : [["expired", "已過期", "red"], ["soon", `${SOON_DAYS}天內到期`, "amber"]];
+  $("chips").innerHTML = chipDefs.map(([k, t, c]) =>
     `<button class="chip ${c} ${state.view === k ? "on" : ""}" data-view="${k}">${t}<b>${cnt[k]}</b></button>`
   ).join("");
 
-  const cats = [...new Set(items.map(i => (i.category || "").trim()).filter(Boolean))].sort();
+  // 細部位置建議
   const locs = [...new Set(items.map(i => (i.location || "").trim()).filter(Boolean))].sort();
-  if (state.cat && !cats.includes(state.cat)) state.cat = "";
-  $("catFilter").innerHTML = `<option value="">所有分類</option>` +
-    cats.map(c => `<option ${c === state.cat ? "selected" : ""}>${esc(c)}</option>`).join("");
-  $("catList").innerHTML = cats.map(c => `<option value="${esc(c)}">`).join("");
   $("locList").innerHTML = locs.map(c => `<option value="${esc(c)}">`).join("");
 
+  // 首頁:區域列表
+  if (!inArea && state.view === "all" && !state.q) { renderAreas(); return; }
+
+  // 物品列表
   const q = norm(state.q);
-  const list = items.filter(it => {
-    const s = statusOf(it);
-    if (state.view !== "all" && s !== state.view) return false;
-    if (state.cat && (it.category || "").trim() !== state.cat) return false;
-    if (q && ![it.name, it.category, it.location, it.note].some(v => norm(v).includes(q))) return false;
+  const list = scope.filter(it => {
+    if (state.view !== "all" && statusOf(it) !== state.view) return false;
+    if (q && ![it.name, it.location, it.note, areaLabel(areaKey(it)).name].some(v => norm(v).includes(q))) return false;
     return true;
-  }).sort((a, b) => {
-    const da = daysLeft(a.expiry), dbb = daysLeft(b.expiry);
-    if (da !== null && dbb !== null && da !== dbb) return da - dbb;
-    if (da !== null && dbb === null) return -1;
-    if (da === null && dbb !== null) return 1;
-    return (a.name || "").localeCompare(b.name || "", "zh-Hant");
-  });
+  }).sort(byExpiry);
 
   if (!list.length) {
-    $("list").innerHTML = `<div class="emptystate">${items.length
-      ? "沒有符合的物品"
-      : "還沒有任何物品<br>按右下角 ＋ 開始記錄"}</div>`;
+    $("list").innerHTML = `<div class="emptystate">${
+      scope.length || q || state.view !== "all"
+        ? "沒有符合的物品"
+        : "這個區域還沒有東西<br>按右下角「＋ 物品」開始記錄"}</div>`;
     return;
   }
-
-  $("list").innerHTML = list.map(it => {
-    const s = statusOf(it);
-    const meta = [it.category, it.location].filter(Boolean).map(esc).join(" · ");
-    const exp = expiryText(it);
-    return `<article class="card ${s} ${(it.qty ?? 0) <= 0 ? "empty" : ""}" data-id="${it.id}">
-      <div class="thumb">${it.thumb ? `<img src="${it.thumb}" alt="">` : "📦"}</div>
-      <div class="info">
-        <div class="name">${esc(it.name)}</div>
-        ${meta ? `<div class="meta">${meta}</div>` : ""}
-        ${exp ? `<span class="badge ${s}">${exp}</span>` : ""}
-        ${(it.qty ?? 0) <= 0 ? `<span class="badge">已用完</span>` : ""}
-      </div>
-      <div class="qty">
-        <button data-act="dec" aria-label="減少">−</button>
-        <span>${it.qty ?? 0}</span>
-        <button data-act="inc" aria-label="增加">＋</button>
-      </div>
-    </article>`;
-  }).join("");
+  $("list").innerHTML = list.map(it => itemHTML(it, !inArea)).join("");
 }
 
+function renderAreas() {
+  const keys = areas.map(a => a.id);
+  if (items.some(it => areaKey(it) === NO_AREA)) keys.push(NO_AREA);
+  if (!keys.length) {
+    $("list").innerHTML = `<div class="emptystate">先建立幾個區域吧<br>例如:廚房、冰箱、浴室、臥室衣櫃
+      <br><button class="btn" data-newarea>＋ 建立第一個區域</button></div>`;
+    return;
+  }
+  $("list").innerHTML = keys.map(k => {
+    const a = areaLabel(k);
+    const c = counts(items.filter(it => areaKey(it) === k));
+    return `<article class="arow" data-area="${k}">
+      <div class="aemoji">${esc(a.emoji)}</div>
+      <div class="info">
+        <div class="name serif">${esc(a.name)}</div>
+        <div class="flags">${c.expired ? `<span class="r">${c.expired} 已過期</span>` : ""}${
+          c.soon ? `<span class="a">${c.soon} 快過期</span>` : ""}<span class="meta" style="display:inline">${c.all} 樣</span></div>
+      </div>
+      <span class="chev">›</span>
+    </article>`;
+  }).join("") + `<button class="addarea" data-newarea>＋ 新增區域</button>`;
+}
+
+function itemHTML(it, showArea) {
+  const s = statusOf(it);
+  const a = areaLabel(areaKey(it));
+  const meta = [showArea ? `${a.emoji} ${a.name}` : "", it.location].filter(Boolean).map(esc).join(" · ");
+  const exp = expiryText(it);
+  const empty = (it.qty ?? 0) <= 0;
+  return `<article class="card ${s} ${empty ? "empty" : ""}" data-id="${it.id}">
+    <div class="thumb">${it.thumb ? `<img src="${it.thumb}" alt="">` : "📦"}</div>
+    <div class="info">
+      <div class="name">${esc(it.name)}</div>
+      ${meta ? `<div class="meta">${meta}</div>` : ""}
+      ${exp ? `<span class="badge ${s}">${exp}</span>` : ""}${empty ? `<span class="badge">已用完</span>` : ""}
+    </div>
+    <div class="qty">
+      <button data-act="dec" aria-label="減少">−</button>
+      <span>${it.qty ?? 0}</span>
+      <button data-act="inc" aria-label="增加">＋</button>
+    </div>
+  </article>`;
+}
+
+/* ---------- 導覽 ---------- */
 $("chips").onclick = e => {
   const b = e.target.closest("[data-view]"); if (!b) return;
-  state.view = b.dataset.view; render();
+  const v = b.dataset.view;
+  state.view = (state.area === null && state.view === v) ? "all" : v;
+  render();
 };
 $("search").oninput = e => { state.q = e.target.value; render(); };
-$("catFilter").onchange = e => { state.cat = e.target.value; render(); };
+$("backBtn").onclick = () => {
+  if (state.view !== "all" || state.q) {
+    state.view = "all"; state.q = ""; $("search").value = "";
+    if (state.area === null) { render(); return; }
+  }
+  state.area = null; state.view = "all";
+  render();
+};
+$("topLink").onclick = () => {
+  if (state.area === null) signOut(auth);
+  else openAreaEditor(areas.find(a => a.id === state.area));
+};
+$("fab").onclick = () => state.area === null ? openAreaEditor(null) : openEditor(null);
 
 $("list").onclick = async e => {
+  if (e.target.closest("[data-newarea]")) { openAreaEditor(null); return; }
+  const row = e.target.closest(".arow");
+  if (row) {
+    state.area = row.dataset.area; state.view = "all"; state.q = ""; $("search").value = "";
+    window.scrollTo(0, 0); render(); return;
+  }
   const card = e.target.closest(".card"); if (!card) return;
   const it = items.find(i => i.id === card.dataset.id); if (!it) return;
   const act = e.target.closest("[data-act]")?.dataset.act;
@@ -331,22 +482,79 @@ $("list").onclick = async e => {
   openEditor(it);
 };
 
-/* ---------- 編輯視窗 ---------- */
+/* ---------- 區域編輯 ---------- */
+let pickedEmoji = EMOJIS[0];
+function drawEmojis() {
+  $("emojiPick").innerHTML = EMOJIS.map(em =>
+    `<button type="button" class="${em === pickedEmoji ? "on" : ""}" data-em="${em}">${em}</button>`).join("");
+}
+$("emojiPick").onclick = e => {
+  const b = e.target.closest("[data-em]"); if (!b) return;
+  pickedEmoji = b.dataset.em; drawEmojis();
+};
+function openAreaEditor(a) {
+  editingArea = a ? a.id : null;
+  $("areaTitle").textContent = a ? "編輯區域" : "新增區域";
+  $("aName").value = a?.name || "";
+  pickedEmoji = a?.emoji || EMOJIS[0];
+  drawEmojis();
+  $("aDel").hidden = !a;
+  $("areaDlg").showModal();
+}
+$("aCancel").onclick = () => $("areaDlg").close();
+$("areaForm").onsubmit = async e => {
+  e.preventDefault();
+  const name = $("aName").value.trim(); if (!name) return;
+  $("aSave").disabled = true;
+  try {
+    if (editingArea) {
+      await updateDoc(doc(db, "users", uid, "areas", editingArea), { name, emoji: pickedEmoji });
+    } else {
+      const ref = await addDoc(collection(db, "users", uid, "areas"),
+        { name, emoji: pickedEmoji, order: Date.now(), createdAt: serverTimestamp() });
+      state.area = ref.id; state.view = "all"; state.q = ""; $("search").value = "";
+    }
+    $("areaDlg").close();
+    render();
+  } catch (err) { alert("儲存失敗:" + err.message); }
+  finally { $("aSave").disabled = false; }
+};
+$("aDel").onclick = async () => {
+  const id = editingArea; if (!id) return;
+  const inside = items.filter(it => it.areaId === id);
+  const msg = inside.length
+    ? `這個區域裡還有 ${inside.length} 樣東西,會一起刪除。確定嗎?`
+    : "確定要刪除這個區域?";
+  if (!confirm(msg)) return;
+  $("areaDlg").close();
+  state.area = null; state.view = "all";
+  for (const it of inside) {
+    await deleteDoc(doc(db, "users", uid, "items", it.id));
+    await deleteDoc(doc(db, "users", uid, "photos", it.id)).catch(() => {});
+  }
+  await deleteDoc(doc(db, "users", uid, "areas", id));
+  render();
+};
+
+/* ---------- 物品編輯 ---------- */
 function setPhotoBox(src) {
   $("photoBox").innerHTML = src ? `<img src="${src}" alt="">` : `<span>還沒有照片</span>`;
   $("removePhoto").hidden = !src;
 }
 
 async function openEditor(it) {
+  if (!areas.length) { alert("請先建立一個區域"); openAreaEditor(null); return; }
   editing = it ? it.id : null;
   photo = { changed: false, full: null, thumb: null };
   $("formTitle").textContent = it ? "編輯物品" : "新增物品";
   $("fName").value = it?.name || "";
   $("fQty").value = it ? (it.qty ?? 0) : 1;
   $("fExpiry").value = it?.expiry || "";
-  $("fCat").value = it?.category || "";
   $("fLoc").value = it?.location || "";
   $("fNote").value = it?.note || "";
+  const cur = it ? (areaOf(it) ? it.areaId : "") : (state.area !== NO_AREA ? state.area : "");
+  $("fArea").innerHTML = (cur ? "" : `<option value="">請選擇區域</option>`) +
+    areas.map(a => `<option value="${a.id}" ${a.id === cur ? "selected" : ""}>${esc(a.emoji)} ${esc(a.name)}</option>`).join("");
   $("delBtn").hidden = !it;
   $("dupWarn").hidden = true;
   setPhotoBox(it?.thumb || null);
@@ -359,10 +567,9 @@ async function openEditor(it) {
   }
 }
 
-$("fab").onclick = () => openEditor(null);
 $("cancelBtn").onclick = () => $("editor").close();
 
-// 新增時,名稱跟現有物品重複就提醒
+// 新增時,名稱跟任何區域的現有物品重複就提醒
 $("fName").oninput = () => {
   if (editing) return;
   const n = norm($("fName").value);
@@ -370,9 +577,10 @@ $("fName").oninput = () => {
   const w = $("dupWarn");
   if (!hits.length) { w.hidden = true; return; }
   w.hidden = false;
-  w.innerHTML = "⚠️ 你已經有:" + hits.slice(0, 4).map(h =>
-    `${esc(h.name)} ×${h.qty ?? 0}${h.location ? `(${esc(h.location)})` : ""}${h.expiry ? `,${expiryText(h)}` : ""}`
-  ).join(";");
+  w.innerHTML = "⚠️ 你已經有:" + hits.slice(0, 4).map(h => {
+    const a = areaLabel(areaKey(h));
+    return `${esc(h.name)} ×${h.qty ?? 0}(${esc(a.name)}${h.location ? "・" + esc(h.location) : ""})${h.expiry ? "," + expiryText(h) : ""}`;
+  }).join(";");
 };
 
 /* ---------- 照片 ---------- */
@@ -396,7 +604,6 @@ function toJpeg(img, max, quality) {
   c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
   return c.toDataURL("image/jpeg", quality);
 }
-
 $("fileInput").onchange = async e => {
   const file = e.target.files[0]; e.target.value = "";
   if (!file) return;
@@ -409,16 +616,17 @@ $("fileInput").onchange = async e => {
   } catch (err) { alert("照片讀取失敗,請換一張試試"); }
 };
 
-/* ---------- 儲存 / 刪除 ---------- */
+/* ---------- 儲存 / 刪除物品 ---------- */
 $("form").onsubmit = async e => {
   e.preventDefault();
   const name = $("fName").value.trim();
   if (!name) return;
+  const areaId = $("fArea").value;
+  if (!areaId) { alert("請選擇區域"); return; }
   const data = {
-    name,
+    name, areaId,
     qty: Math.max(0, parseInt($("fQty").value, 10) || 0),
     expiry: $("fExpiry").value || null,
-    category: $("fCat").value.trim(),
     location: $("fLoc").value.trim(),
     note: $("fNote").value.trim(),
     updatedAt: serverTimestamp()
