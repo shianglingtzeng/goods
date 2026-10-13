@@ -92,7 +92,19 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
 .actions{display:flex;gap:8px;margin-top:18px}
 .actions .grow{flex:1}
 .hint{font-size:13px;color:var(--muted)}
-.emojis{display:flex;flex-wrap:wrap;gap:8px}
+.emojis{display:flex;flex-wrap:wrap;gap:6px;max-height:220px;overflow-y:auto;padding-bottom:4px}
+.egroup{flex:0 0 100%;font-size:12px;color:var(--muted);margin:6px 0 0}
+/* 首頁總覽 */
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 4px}
+.stat{background:var(--field);border:0;border-radius:14px;padding:12px 10px;text-align:left}
+.stat .n{display:block;font-size:28px;font-weight:700;line-height:1.1;font-family:"Noto Serif TC","Songti TC",Georgia,serif}
+.stat .l{font-size:13px;color:var(--muted)}
+.stat.r .n{color:var(--red)} .stat.a .n{color:var(--amber)}
+.stat.zero .n{color:var(--muted)}
+.sub{font-size:13px;color:var(--muted);margin:2px 2px 0}
+.sec{display:flex;align-items:baseline;justify-content:space-between;margin:24px 2px 0;
+  font-size:13px;letter-spacing:.5px;color:var(--muted);font-weight:600}
+.allgood{padding:14px 2px;color:var(--muted);font-size:14px;border-bottom:1px solid var(--line)}
 .emojis button{width:44px;height:44px;border-radius:12px;border:1px solid transparent;background:var(--field);font-size:22px}
 .emojis button.on{border-color:var(--brand);background:#f4e4dc}
 [hidden]{display:none!important}
@@ -143,6 +155,8 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
     <input class="f" id="aName" required autocomplete="off" placeholder="例:廚房、浴室、臥室衣櫃">
     <label>圖示</label>
     <div class="emojis" id="emojiPick"></div>
+    <label for="aEmoji">找不到喜歡的?直接用鍵盤輸入任何表情符號</label>
+    <input class="f" id="aEmoji" autocomplete="off" placeholder="例:🐟" style="width:110px;font-size:22px;text-align:center">
     <div class="actions">
       <button type="button" class="btn danger" id="aDel" hidden>刪除</button>
       <span class="grow"></span>
@@ -225,7 +239,16 @@ const firebaseConfig = {
 /* 幾天內算「快過期」 */
 const SOON_DAYS = 7;
 /* 區域可選的圖示 */
-const EMOJIS = ["🍳","🧊","🛁","🛏️","👕","🧴","💊","🧹","🗄️","📚","🚪","🚗","🏢","📦"];
+const EMOJI_GROUPS = [
+  ["空間", ["🍳","🧊","🛁","🚿","🚽","🛏️","🛋️","🚪","🪟","🪴","🏠","🏢","🚗","🧳","🎒","👜"]],
+  ["收納", ["📦","🗄️","🧺","🗃️","🪣","🧰","🛒","🏷️"]],
+  ["食物", ["🥫","🍝","🍚","🍞","🥛","🧀","🥚","🍎","🥬","🧂","🫙","🍫","🍪","☕","🍵","🍷","🧃","🥤"]],
+  ["清潔日用", ["🧴","🧼","🧽","🧹","🧻","🪥","🫧","🧷","🔋","💡","🕯️","🪒"]],
+  ["保養健康", ["💄","💅","🪞","💊","🩹","🩺","🌡️","😷"]],
+  ["衣物配件", ["👕","👖","👗","🧥","🧦","👟","👠","🧣","🧤","🎩","👓","💍"]],
+  ["其他", ["📚","✏️","📎","🖇️","💻","📱","🔌","🎧","🎮","🧸","🎁","🐱","🐶","🪡","🔧","🔑","⭐","❤️"]]
+];
+const EMOJIS = EMOJI_GROUPS.flatMap(g => g[1]);
 /* ========================== */
 
 const $ = id => document.getElementById(id);
@@ -368,7 +391,7 @@ function render() {
   // 篩選標籤
   const chipDefs = inArea
     ? [["all", "全部", ""], ["expired", "已過期", "red"], ["soon", `${SOON_DAYS}天內到期`, "amber"]]
-    : [["expired", "已過期", "red"], ["soon", `${SOON_DAYS}天內到期`, "amber"]];
+    : (state.view === "all" ? [] : [["expired", "已過期", "red"], ["soon", `${SOON_DAYS}天內到期`, "amber"]]);
   $("chips").innerHTML = chipDefs.map(([k, t, c]) =>
     `<button class="chip ${c} ${state.view === k ? "on" : ""}" data-view="${k}">${t}<b>${cnt[k]}</b></button>`
   ).join("");
@@ -406,7 +429,26 @@ function renderAreas() {
       <br><button class="btn" data-newarea>＋ 建立第一個區域</button></div>`;
     return;
   }
-  $("list").innerHTML = keys.map(k => {
+
+  // 總覽
+  const c = counts(items);
+  const inStock = items.filter(it => (it.qty ?? 0) > 0);
+  const totalQty = inStock.reduce((s, it) => s + (it.qty ?? 0), 0);
+  const urgent = items.filter(it => ["expired", "soon"].includes(statusOf(it))).sort(byExpiry);
+  const overview = `
+    <div class="stats">
+      <button class="stat" data-scroll="areas"><span class="n">${c.all}</span><span class="l">樣物品</span></button>
+      <button class="stat r ${c.expired ? "" : "zero"}" data-view="expired"><span class="n">${c.expired}</span><span class="l">已過期</span></button>
+      <button class="stat a ${c.soon ? "" : "zero"}" data-view="soon"><span class="n">${c.soon}</span><span class="l">${SOON_DAYS} 天內到期</span></button>
+    </div>
+    <p class="sub">共 ${totalQty} 件庫存,分佈在 ${areas.length} 個區域</p>
+    <div class="sec"><span>⚠️ 需要處理</span>${urgent.length ? `<span>${urgent.length} 樣</span>` : ""}</div>
+    ${urgent.length
+      ? urgent.map(it => itemHTML(it, true)).join("")
+      : `<div class="allgood">✓ 目前沒有快過期或已過期的東西</div>`}
+    <div class="sec" id="areasSec"><span>區域</span></div>`;
+
+  $("list").innerHTML = overview + keys.map(k => {
     const a = areaLabel(k);
     const c = counts(items.filter(it => areaKey(it) === k));
     return `<article class="arow" data-area="${k}">
@@ -466,6 +508,9 @@ $("fab").onclick = () => state.area === null ? openAreaEditor(null) : openEditor
 
 $("list").onclick = async e => {
   if (e.target.closest("[data-newarea]")) { openAreaEditor(null); return; }
+  if (e.target.closest("[data-scroll]")) { $("areasSec")?.scrollIntoView({ behavior: "smooth" }); return; }
+  const sv = e.target.closest(".stat[data-view]");
+  if (sv) { state.view = sv.dataset.view; window.scrollTo(0, 0); render(); return; }
   const row = e.target.closest(".arow");
   if (row) {
     state.area = row.dataset.area; state.view = "all"; state.q = ""; $("search").value = "";
@@ -485,9 +530,17 @@ $("list").onclick = async e => {
 /* ---------- 區域編輯 ---------- */
 let pickedEmoji = EMOJIS[0];
 function drawEmojis() {
-  $("emojiPick").innerHTML = EMOJIS.map(em =>
-    `<button type="button" class="${em === pickedEmoji ? "on" : ""}" data-em="${em}">${em}</button>`).join("");
+  const custom = !EMOJIS.includes(pickedEmoji);
+  $("emojiPick").innerHTML = EMOJI_GROUPS.map(([g, list]) =>
+    `<div class="egroup">${g}</div>` + list.map(em =>
+      `<button type="button" class="${em === pickedEmoji ? "on" : ""}" data-em="${em}">${em}</button>`).join("")
+  ).join("");
+  $("aEmoji").value = custom ? pickedEmoji : "";
 }
+$("aEmoji").oninput = e => {
+  const v = [...e.target.value.trim()].slice(0, 4).join("");
+  if (v) { pickedEmoji = v; $("emojiPick").querySelectorAll(".on").forEach(b => b.classList.remove("on")); }
+};
 $("emojiPick").onclick = e => {
   const b = e.target.closest("[data-em]"); if (!b) return;
   pickedEmoji = b.dataset.em; drawEmojis();
