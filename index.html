@@ -63,6 +63,10 @@ main{padding:4px 16px 110px}
 .qty button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:transparent;font-size:18px;line-height:1}
 .qty span{min-width:26px;text-align:center;font-weight:600}
 .card .movebtn{flex:0 0 auto;padding:8px 12px;font-size:14px}
+.side{display:flex;flex-direction:column;align-items:flex-end;gap:6px;flex:0 0 auto}
+.outbtn{background:none;border:0;color:var(--muted);font-size:13px;padding:2px 4px}
+.card.away{opacity:.6}
+.card.away .thumb{filter:grayscale(1)}
 .emptystate{text-align:center;color:var(--muted);padding:56px 20px;line-height:1.8}
 .emptystate .btn{margin-top:14px}
 
@@ -410,6 +414,7 @@ function daysLeft(exp) {
   return Math.round((t - n) / 86400000);
 }
 function statusOf(it) {
+  if (it.away) return "none";
   const d = daysLeft(it.expiry);
   if (d === null) return "none";
   if (d < 0) return "expired";
@@ -425,11 +430,19 @@ function expiryText(it) {
   return `到期 ${it.expiry}`;
 }
 /* 多久前更新(太久沒動,代表東西可能已經不在那裡了) */
-function agoText(it) {
-  const t = (it.updatedAt || it.createdAt)?.toDate?.();
+function agoOf(t) {
   if (!t) return "";
   const d = Math.floor((Date.now() - t) / 86400000);
-  return d <= 0 ? "今天更新" : d < 30 ? `${d} 天前更新` : `${Math.floor(d / 30)} 個月前更新`;
+  return d <= 0 ? "今天" : d < 30 ? `${d} 天前` : `${Math.floor(d / 30)} 個月前`;
+}
+function agoText(it) {
+  const s = agoOf((it.updatedAt || it.createdAt)?.toDate?.());
+  return s ? (s === "今天" ? "今天更新" : s + "更新") : "";
+}
+/* 排序:已拿走的沉到最底,其餘快過期/過期的在最上面 */
+function cmp(a, b) {
+  if (!!a.away !== !!b.away) return a.away ? 1 : -1;
+  return byExpiry(a, b);
 }
 function byExpiry(a, b) {
   const da = daysLeft(a.expiry), dbb = daysLeft(b.expiry);
@@ -439,7 +452,7 @@ function byExpiry(a, b) {
   return (a.name || "").localeCompare(b.name || "", "zh-Hant");
 }
 function counts(list) {
-  const c = { all: list.length, expired: 0, soon: 0 };
+  const c = { all: list.filter(it => !it.away).length, expired: 0, soon: 0 };
   list.forEach(it => { const s = statusOf(it); if (s in c) c[s]++; });
   return c;
 }
@@ -522,7 +535,7 @@ function render() {
     if (state.view !== "all" && statusOf(it) !== state.view) return false;
     if (q && ![it.name, it.location, it.note, areaLabel(areaKey(it)).name].some(v => norm(v).includes(q))) return false;
     return true;
-  }).sort(byExpiry);
+  }).sort(cmp);
 
   // 在某個區域裡搜尋時,把「記錄在其他地方」的同名物品也列出來,可一鍵搬過來
   const others = (inArea && state.area !== NO_AREA && q)
@@ -532,7 +545,7 @@ function render() {
   const moreHTML = others.length
     ? `<div class="sec"><span>其他地方也有</span></div>` +
       others.map(it => itemHTML(it, true).replace(
-        /<div class="qty">[\s\S]*<\/div>\s*<\/article>/,
+        /<div class="side">[\s\S]*<\/div>\s*<\/article>/,
         `<button class="btn ghost movebtn" data-move="${it.id}">搬來這裡</button></article>`)).join("")
     : "";
 
@@ -557,9 +570,15 @@ function renderAreas() {
 
   // 總覽
   const c = counts(items);
-  const inStock = items.filter(it => (it.qty ?? 0) > 0);
+  const inStock = items.filter(it => !it.away && (it.qty ?? 0) > 0);
   const totalQty = inStock.reduce((s, it) => s + (it.qty ?? 0), 0);
   const urgent = items.filter(it => ["expired", "soon"].includes(statusOf(it))).sort(byExpiry);
+  const out = items.filter(it => it.away)
+    .sort((a, b) => (b.awayAt?.toMillis?.() || 0) - (a.awayAt?.toMillis?.() || 0));
+  const outHTML = out.length
+    ? `<div class="sec"><span>🚶 在外面(還沒放回)</span><span>${out.length} 樣</span></div>` +
+      out.map(it => itemHTML(it, true)).join("")
+    : "";
   const overview = `
     <div class="stats">
       <button class="stat" data-scroll="areas"><span class="n">${c.all}</span><span class="l">樣物品</span></button>
@@ -571,6 +590,7 @@ function renderAreas() {
     ${urgent.length
       ? urgent.map(it => itemHTML(it, true)).join("")
       : `<div class="allgood">✓ 目前沒有快過期或已過期的東西</div>`}
+    ${outHTML}
     <div class="sec" id="areasSec"><span>區域</span><button class="secbtn" data-labels>🏷️ QR 標籤</button></div>`;
 
   $("list").innerHTML = overview + keys.map(k => {
@@ -589,23 +609,34 @@ function renderAreas() {
 }
 
 function itemHTML(it, showArea) {
+  const away = !!it.away;
   const s = statusOf(it);
   const a = areaLabel(areaKey(it));
-  const meta = [showArea ? `${a.emoji} ${a.name}` : "", it.location, agoText(it)].filter(Boolean).map(esc).join(" · ");
-  const exp = expiryText(it);
-  const empty = (it.qty ?? 0) <= 0;
-  return `<article class="card ${s} ${empty ? "empty" : ""}" data-id="${it.id}">
+  const meta = (away
+    ? [`上次在 ${a.emoji} ${a.name}`, it.location]
+    : [showArea ? `${a.emoji} ${a.name}` : "", it.location, agoText(it)]
+  ).filter(Boolean).map(esc).join(" · ");
+  const exp = away ? "" : expiryText(it);
+  const empty = !away && (it.qty ?? 0) <= 0;
+  const awayAgo = away ? agoOf(it.awayAt?.toDate?.()) : "";
+  const side = away
+    ? `<div class="side"><button class="btn ghost movebtn" data-act="back">放回</button></div>`
+    : `<div class="side">
+        <div class="qty">
+          <button data-act="dec" aria-label="減少">−</button>
+          <span>${it.qty ?? 0}</span>
+          <button data-act="inc" aria-label="增加">＋</button>
+        </div>
+        <button class="outbtn" data-act="away">拿走了</button>
+      </div>`;
+  return `<article class="card ${s} ${empty ? "empty" : ""} ${away ? "away" : ""}" data-id="${it.id}">
     <div class="thumb">${it.thumb ? `<img src="${it.thumb}" alt="">` : "📦"}</div>
     <div class="info">
       <div class="name">${esc(it.name)}</div>
       ${meta ? `<div class="meta">${meta}</div>` : ""}
-      ${exp ? `<span class="badge ${s}">${exp}</span>` : ""}${empty ? `<span class="badge">已用完</span>` : ""}
+      ${away ? `<span class="badge">🚶 已拿走${awayAgo ? "・" + awayAgo : ""}</span>` : ""}${exp ? `<span class="badge ${s}">${exp}</span>` : ""}${empty ? `<span class="badge">已用完</span>` : ""}
     </div>
-    <div class="qty">
-      <button data-act="dec" aria-label="減少">−</button>
-      <span>${it.qty ?? 0}</span>
-      <button data-act="inc" aria-label="增加">＋</button>
-    </div>
+    ${side}
   </article>`;
 }
 
@@ -644,7 +675,7 @@ $("list").onclick = async e => {
   const mv = e.target.closest("[data-move]");
   if (mv) {
     await updateDoc(doc(db, "users", uid, "items", mv.dataset.move),
-      { areaId: state.area, location: "", updatedAt: serverTimestamp() });
+      { areaId: state.area, location: "", away: false, awayAt: null, updatedAt: serverTimestamp() });
     state.q = ""; $("search").value = "";
     render();
     return;
@@ -658,8 +689,15 @@ $("list").onclick = async e => {
   const it = items.find(i => i.id === card.dataset.id); if (!it) return;
   const act = e.target.closest("[data-act]")?.dataset.act;
   if (act) {
-    const q = Math.max(0, (it.qty ?? 0) + (act === "inc" ? 1 : -1));
-    await updateDoc(doc(db, "users", uid, "items", it.id), { qty: q, updatedAt: serverTimestamp() });
+    const ref = doc(db, "users", uid, "items", it.id);
+    if (act === "away") {
+      await updateDoc(ref, { away: true, awayAt: serverTimestamp(), updatedAt: serverTimestamp() });
+    } else if (act === "back") {
+      await updateDoc(ref, { away: false, awayAt: null, updatedAt: serverTimestamp() });
+    } else {
+      const q = Math.max(0, (it.qty ?? 0) + (act === "inc" ? 1 : -1));
+      await updateDoc(ref, { qty: q, updatedAt: serverTimestamp() });
+    }
     return;
   }
   openEditor(it);
