@@ -113,6 +113,10 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
 .lab .lname{font-size:16px;font-weight:600;margin-bottom:6px}
 .lab .qr svg{width:100%;max-width:170px;height:auto;display:block;margin:0 auto}
 .lab .lbtn{margin-top:8px;font-size:13px;padding:6px 10px}
+.tabs{display:flex;gap:8px;margin:4px 0 10px}
+.where{background:#f4e4dc;border-radius:12px;padding:12px 14px;margin:0 0 12px;font-size:16px;line-height:1.5}
+.where b{display:block;font-size:13px;color:var(--brand);font-weight:600;margin-bottom:2px}
+.lab .lsub{font-size:12px;color:var(--muted);margin:-4px 0 6px}
 .secbtn{background:none;border:0;color:var(--brand);font-size:13px;font-weight:600;padding:0}
 @media print{
   header,#fab,.noprint{display:none!important}
@@ -191,6 +195,7 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
 <dialog id="editor">
   <form id="form" method="dialog">
     <h2 id="formTitle">新增物品</h2>
+    <div class="where" id="whereBox" hidden></div>
 
     <div class="photo" id="photoBox"><span>還沒有照片</span></div>
     <div class="photorow">
@@ -228,6 +233,14 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
 
     <label for="fNote">備註</label>
     <textarea class="f" id="fNote" rows="2"></textarea>
+
+    <div id="iLinkBox" hidden>
+      <label for="iLink">NFC / QR 網址(貼在這個物品上,碰一下就打開這一頁)</label>
+      <div style="display:flex;gap:8px">
+        <input class="f" id="iLink" readonly style="flex:1;min-width:0;font-size:13px">
+        <button type="button" class="btn ghost" id="iCopy" style="flex:0 0 auto;padding:10px 14px">複製</button>
+      </div>
+    </div>
 
     <div class="actions">
       <button type="button" class="btn danger" id="delBtn" hidden>刪除</button>
@@ -286,11 +299,14 @@ const db = initializeFirestore(app, {
 });
 
 let uid = null, unsubs = [], items = [], areas = [];
-const state = { area: null, view: "all", q: "", labels: false };   // area: null = 首頁
+const state = { area: null, view: "all", q: "", labels: false, labelTab: "area" };   // area: null = 首頁
 /* 從網址 ?area=xxx 直接打開某個區域(NFC / QR 用) */
-let pendingArea = new URLSearchParams(location.search).get("area");
+const params = new URLSearchParams(location.search);
+let pendingArea = params.get("area");
+let pendingItem = params.get("item");
 const BASE_URL = location.origin + location.pathname;
 const areaURL = id => `${BASE_URL}?area=${encodeURIComponent(id)}`;
+const itemURL = id => `${BASE_URL}?item=${encodeURIComponent(id)}`;
 let editing = null, editingArea = null;
 let photo = { changed: false, full: null, thumb: null };
 const NO_AREA = "__none__";
@@ -337,7 +353,7 @@ onAuthStateChanged(auth, user => {
   $("login").hidden = !!user;
   $("app").hidden = !user;
   if (!user) return;
-  Object.assign(state, { area: null, view: "all", q: "", labels: false });
+  Object.assign(state, { area: null, view: "all", q: "", labels: false, labelTab: "area" });
   $("search").value = "";
   const onErr = err => alert("讀取失敗:" + err.message);
   unsubs.push(onSnapshot(collection(db, "users", uid, "areas"), snap => {
@@ -352,10 +368,34 @@ onAuthStateChanged(auth, user => {
       }
     }
     render();
+    if (pendingItem && areas.length) {
+      const it = items.find(i => i.id === pendingItem);
+      if (it) {
+        pendingItem = null;
+        history.replaceState(null, "", location.pathname);
+        if (areaOf(it)) state.area = it.areaId;
+        render();
+        openEditor(it);
+      }
+    }
   }, onErr));
   unsubs.push(onSnapshot(collection(db, "users", uid, "items"), snap => {
     items = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     render();
+    if (pendingItem) {
+      const it = items.find(i => i.id === pendingItem);
+      if (it && areas.length) {
+        pendingItem = null;
+        history.replaceState(null, "", location.pathname);
+        if (areaOf(it)) state.area = it.areaId;
+        render();
+        openEditor(it);
+      } else if (!it && !snap.metadata.fromCache) {
+        pendingItem = null;
+        history.replaceState(null, "", location.pathname);
+        alert("找不到這個物品,可能已經被刪除了。");
+      }
+    }
   }, onErr));
 });
 
@@ -408,7 +448,7 @@ function counts(list) {
 /* ---------- 畫面 ---------- */
 function syncURL() {
   const want = (state.area && state.area !== NO_AREA && !state.labels) ? `?area=${encodeURIComponent(state.area)}` : "";
-  if (location.search !== want && !pendingArea) history.replaceState(null, "", location.pathname + want);
+  if (location.search !== want && !pendingArea && !pendingItem) history.replaceState(null, "", location.pathname + want);
 }
 
 function qrSvg(text) {
@@ -425,14 +465,35 @@ function renderLabels() {
   $("search").hidden = true;
   $("fab").hidden = true;
   $("chips").innerHTML = "";
-  if (!areas.length) { $("list").innerHTML = `<div class="emptystate">還沒有區域</div>`; return; }
-  $("list").innerHTML = `<p class="hint noprint">印出來剪下貼在箱子上,手機掃描就會打開那個區域。要寫進 NFC 貼紙,按「複製網址」後用 NFC Tools App 寫入。</p>
-    <div class="labels">${areas.map(a => `
-      <div class="lab">
-        <div class="lname">${esc(a.emoji)} ${esc(a.name)}</div>
-        <div class="qr">${qrSvg(areaURL(a.id))}</div>
-        <button class="btn ghost lbtn noprint" data-copy="${esc(areaURL(a.id))}">複製網址</button>
-      </div>`).join("")}</div>`;
+  const t = state.labelTab;
+  const tabs = `<div class="tabs noprint">
+    <button class="chip ${t === "area" ? "on" : ""}" data-ltab="area">貼在箱子(區域)</button>
+    <button class="chip ${t === "item" ? "on" : ""}" data-ltab="item">貼在物品上</button></div>`;
+  if (t === "area") {
+    if (!areas.length) { $("list").innerHTML = tabs + `<div class="emptystate">還沒有區域</div>`; return; }
+    $("list").innerHTML = tabs + `<p class="hint noprint">貼在箱子、抽屜上,手機一碰就看到裡面有什麼。寫 NFC:按「複製網址」後用 NFC Tools App 寫入。</p>
+      <div class="labels">${areas.map(a => `
+        <div class="lab">
+          <div class="lname">${esc(a.emoji)} ${esc(a.name)}</div>
+          <div class="qr">${qrSvg(areaURL(a.id))}</div>
+          <button class="btn ghost lbtn noprint" data-copy="${esc(areaURL(a.id))}">複製網址</button>
+        </div>`).join("")}</div>`;
+    return;
+  }
+  const list = [...items].sort((a, b) =>
+    (areaLabel(areaKey(a)).name).localeCompare(areaLabel(areaKey(b)).name, "zh-Hant") ||
+    (a.name || "").localeCompare(b.name || "", "zh-Hant"));
+  if (!list.length) { $("list").innerHTML = tabs + `<div class="emptystate">還沒有物品</div>`; return; }
+  $("list").innerHTML = tabs + `<p class="hint noprint">貼在物品本身,手機一碰就告訴你這是什麼、應該放回哪裡。寫 NFC:按「複製網址」後用 NFC Tools App 寫入。</p>
+    <div class="labels">${list.map(it => {
+      const a = areaLabel(areaKey(it));
+      return `<div class="lab">
+        <div class="lname">${esc(it.name)}</div>
+        <div class="lsub">${esc(a.emoji)} ${esc(a.name)}${it.location ? " · " + esc(it.location) : ""}</div>
+        <div class="qr">${qrSvg(itemURL(it.id))}</div>
+        <button class="btn ghost lbtn noprint" data-copy="${esc(itemURL(it.id))}">複製網址</button>
+      </div>`;
+    }).join("")}</div>`;
 }
 
 async function copyText(text, btn) {
@@ -585,6 +646,8 @@ $("fab").onclick = () => state.area === null ? openAreaEditor(null) : openEditor
 $("list").onclick = async e => {
   if (e.target.closest("[data-newarea]")) { openAreaEditor(null); return; }
   if (e.target.closest("[data-labels]")) { state.labels = true; window.scrollTo(0, 0); render(); return; }
+  const lt = e.target.closest("[data-ltab]");
+  if (lt) { state.labelTab = lt.dataset.ltab; render(); return; }
   const cp = e.target.closest("[data-copy]");
   if (cp) { copyText(cp.dataset.copy, cp); return; }
   if (e.target.closest("[data-scroll]")) { $("areasSec")?.scrollIntoView({ behavior: "smooth" }); return; }
@@ -692,6 +755,13 @@ async function openEditor(it) {
     areas.map(a => `<option value="${a.id}" ${a.id === cur ? "selected" : ""}>${esc(a.emoji)} ${esc(a.name)}</option>`).join("");
   $("delBtn").hidden = !it;
   $("dupWarn").hidden = true;
+  $("iLinkBox").hidden = !it;
+  $("iLink").value = it ? itemURL(it.id) : "";
+  if (it) {
+    const a = areaLabel(areaKey(it));
+    $("whereBox").innerHTML = `<b>📍 放在這裡</b>${esc(a.emoji)} ${esc(a.name)}${it.location ? " · " + esc(it.location) : ""}`;
+    $("whereBox").hidden = false;
+  } else $("whereBox").hidden = true;
   setPhotoBox(it?.thumb || null);
   $("editor").showModal();
   if (it?.hasPhoto) {
@@ -703,6 +773,7 @@ async function openEditor(it) {
 }
 
 $("cancelBtn").onclick = () => $("editor").close();
+$("iCopy").onclick = () => copyText($("iLink").value, $("iCopy"));
 
 // 新增時,名稱跟任何區域的現有物品重複就提醒
 $("fName").oninput = () => {
