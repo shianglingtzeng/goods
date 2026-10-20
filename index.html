@@ -62,6 +62,7 @@ main{padding:4px 16px 110px}
 .qty{display:flex;align-items:center;gap:2px}
 .qty button{width:32px;height:32px;border-radius:50%;border:1px solid var(--line);background:transparent;font-size:18px;line-height:1}
 .qty span{min-width:26px;text-align:center;font-weight:600}
+.card .movebtn{flex:0 0 auto;padding:8px 12px;font-size:14px}
 .emptystate{text-align:center;color:var(--muted);padding:56px 20px;line-height:1.8}
 .emptystate .btn{margin-top:14px}
 
@@ -234,14 +235,6 @@ label{display:block;font-size:13px;color:var(--muted);margin:12px 0 4px}
     <label for="fNote">備註</label>
     <textarea class="f" id="fNote" rows="2"></textarea>
 
-    <div id="iLinkBox" hidden>
-      <label for="iLink">NFC / QR 網址(貼在這個物品上,碰一下就打開這一頁)</label>
-      <div style="display:flex;gap:8px">
-        <input class="f" id="iLink" readonly style="flex:1;min-width:0;font-size:13px">
-        <button type="button" class="btn ghost" id="iCopy" style="flex:0 0 auto;padding:10px 14px">複製</button>
-      </div>
-    </div>
-
     <div class="actions">
       <button type="button" class="btn danger" id="delBtn" hidden>刪除</button>
       <span class="grow"></span>
@@ -306,7 +299,6 @@ let pendingArea = params.get("area");
 let pendingItem = params.get("item");
 const BASE_URL = location.origin + location.pathname;
 const areaURL = id => `${BASE_URL}?area=${encodeURIComponent(id)}`;
-const itemURL = id => `${BASE_URL}?item=${encodeURIComponent(id)}`;
 let editing = null, editingArea = null;
 let photo = { changed: false, full: null, thumb: null };
 const NO_AREA = "__none__";
@@ -432,6 +424,13 @@ function expiryText(it) {
   if (d <= SOON_DAYS) return `還有 ${d} 天`;
   return `到期 ${it.expiry}`;
 }
+/* 多久前更新(太久沒動,代表東西可能已經不在那裡了) */
+function agoText(it) {
+  const t = (it.updatedAt || it.createdAt)?.toDate?.();
+  if (!t) return "";
+  const d = Math.floor((Date.now() - t) / 86400000);
+  return d <= 0 ? "今天更新" : d < 30 ? `${d} 天前更新` : `${Math.floor(d / 30)} 個月前更新`;
+}
 function byExpiry(a, b) {
   const da = daysLeft(a.expiry), dbb = daysLeft(b.expiry);
   if (da !== null && dbb !== null && da !== dbb) return da - dbb;
@@ -465,35 +464,14 @@ function renderLabels() {
   $("search").hidden = true;
   $("fab").hidden = true;
   $("chips").innerHTML = "";
-  const t = state.labelTab;
-  const tabs = `<div class="tabs noprint">
-    <button class="chip ${t === "area" ? "on" : ""}" data-ltab="area">貼在箱子(區域)</button>
-    <button class="chip ${t === "item" ? "on" : ""}" data-ltab="item">貼在物品上</button></div>`;
-  if (t === "area") {
-    if (!areas.length) { $("list").innerHTML = tabs + `<div class="emptystate">還沒有區域</div>`; return; }
-    $("list").innerHTML = tabs + `<p class="hint noprint">貼在箱子、抽屜上,手機一碰就看到裡面有什麼。寫 NFC:按「複製網址」後用 NFC Tools App 寫入。</p>
-      <div class="labels">${areas.map(a => `
-        <div class="lab">
-          <div class="lname">${esc(a.emoji)} ${esc(a.name)}</div>
-          <div class="qr">${qrSvg(areaURL(a.id))}</div>
-          <button class="btn ghost lbtn noprint" data-copy="${esc(areaURL(a.id))}">複製網址</button>
-        </div>`).join("")}</div>`;
-    return;
-  }
-  const list = [...items].sort((a, b) =>
-    (areaLabel(areaKey(a)).name).localeCompare(areaLabel(areaKey(b)).name, "zh-Hant") ||
-    (a.name || "").localeCompare(b.name || "", "zh-Hant"));
-  if (!list.length) { $("list").innerHTML = tabs + `<div class="emptystate">還沒有物品</div>`; return; }
-  $("list").innerHTML = tabs + `<p class="hint noprint">貼在物品本身,手機一碰就告訴你這是什麼、應該放回哪裡。寫 NFC:按「複製網址」後用 NFC Tools App 寫入。</p>
-    <div class="labels">${list.map(it => {
-      const a = areaLabel(areaKey(it));
-      return `<div class="lab">
-        <div class="lname">${esc(it.name)}</div>
-        <div class="lsub">${esc(a.emoji)} ${esc(a.name)}${it.location ? " · " + esc(it.location) : ""}</div>
-        <div class="qr">${qrSvg(itemURL(it.id))}</div>
-        <button class="btn ghost lbtn noprint" data-copy="${esc(itemURL(it.id))}">複製網址</button>
-      </div>`;
-    }).join("")}</div>`;
+  if (!areas.length) { $("list").innerHTML = `<div class="emptystate">還沒有區域</div>`; return; }
+  $("list").innerHTML = `<p class="hint noprint">貼在箱子、抽屜、櫃子上,手機一碰就看到裡面有什麼。寫 NFC:按「複製網址」後用 NFC Tools App 寫入。</p>
+    <div class="labels">${areas.map(a => `
+      <div class="lab">
+        <div class="lname">${esc(a.emoji)} ${esc(a.name)}</div>
+        <div class="qr">${qrSvg(areaURL(a.id))}</div>
+        <button class="btn ghost lbtn noprint" data-copy="${esc(areaURL(a.id))}">複製網址</button>
+      </div>`).join("")}</div>`;
 }
 
 async function copyText(text, btn) {
@@ -546,14 +524,26 @@ function render() {
     return true;
   }).sort(byExpiry);
 
-  if (!list.length) {
+  // 在某個區域裡搜尋時,把「記錄在其他地方」的同名物品也列出來,可一鍵搬過來
+  const others = (inArea && state.area !== NO_AREA && q)
+    ? items.filter(it => areaKey(it) !== state.area &&
+        [it.name, it.location, it.note].some(v => norm(v).includes(q)))
+    : [];
+  const moreHTML = others.length
+    ? `<div class="sec"><span>其他地方也有</span></div>` +
+      others.map(it => itemHTML(it, true).replace(
+        /<div class="qty">[\s\S]*<\/div>\s*<\/article>/,
+        `<button class="btn ghost movebtn" data-move="${it.id}">搬來這裡</button></article>`)).join("")
+    : "";
+
+  if (!list.length && !others.length) {
     $("list").innerHTML = `<div class="emptystate">${
       scope.length || q || state.view !== "all"
         ? "沒有符合的物品"
         : "這個區域還沒有東西<br>按右下角「＋ 物品」開始記錄"}</div>`;
     return;
   }
-  $("list").innerHTML = list.map(it => itemHTML(it, !inArea)).join("");
+  $("list").innerHTML = list.map(it => itemHTML(it, !inArea)).join("") + moreHTML;
 }
 
 function renderAreas() {
@@ -601,7 +591,7 @@ function renderAreas() {
 function itemHTML(it, showArea) {
   const s = statusOf(it);
   const a = areaLabel(areaKey(it));
-  const meta = [showArea ? `${a.emoji} ${a.name}` : "", it.location].filter(Boolean).map(esc).join(" · ");
+  const meta = [showArea ? `${a.emoji} ${a.name}` : "", it.location, agoText(it)].filter(Boolean).map(esc).join(" · ");
   const exp = expiryText(it);
   const empty = (it.qty ?? 0) <= 0;
   return `<article class="card ${s} ${empty ? "empty" : ""}" data-id="${it.id}">
@@ -646,13 +636,19 @@ $("fab").onclick = () => state.area === null ? openAreaEditor(null) : openEditor
 $("list").onclick = async e => {
   if (e.target.closest("[data-newarea]")) { openAreaEditor(null); return; }
   if (e.target.closest("[data-labels]")) { state.labels = true; window.scrollTo(0, 0); render(); return; }
-  const lt = e.target.closest("[data-ltab]");
-  if (lt) { state.labelTab = lt.dataset.ltab; render(); return; }
   const cp = e.target.closest("[data-copy]");
   if (cp) { copyText(cp.dataset.copy, cp); return; }
   if (e.target.closest("[data-scroll]")) { $("areasSec")?.scrollIntoView({ behavior: "smooth" }); return; }
   const sv = e.target.closest(".stat[data-view]");
   if (sv) { state.view = sv.dataset.view; window.scrollTo(0, 0); render(); return; }
+  const mv = e.target.closest("[data-move]");
+  if (mv) {
+    await updateDoc(doc(db, "users", uid, "items", mv.dataset.move),
+      { areaId: state.area, location: "", updatedAt: serverTimestamp() });
+    state.q = ""; $("search").value = "";
+    render();
+    return;
+  }
   const row = e.target.closest(".arow");
   if (row) {
     state.area = row.dataset.area; state.view = "all"; state.q = ""; $("search").value = "";
@@ -755,8 +751,6 @@ async function openEditor(it) {
     areas.map(a => `<option value="${a.id}" ${a.id === cur ? "selected" : ""}>${esc(a.emoji)} ${esc(a.name)}</option>`).join("");
   $("delBtn").hidden = !it;
   $("dupWarn").hidden = true;
-  $("iLinkBox").hidden = !it;
-  $("iLink").value = it ? itemURL(it.id) : "";
   if (it) {
     const a = areaLabel(areaKey(it));
     $("whereBox").innerHTML = `<b>📍 放在這裡</b>${esc(a.emoji)} ${esc(a.name)}${it.location ? " · " + esc(it.location) : ""}`;
@@ -773,7 +767,6 @@ async function openEditor(it) {
 }
 
 $("cancelBtn").onclick = () => $("editor").close();
-$("iCopy").onclick = () => copyText($("iLink").value, $("iCopy"));
 
 // 新增時,名稱跟任何區域的現有物品重複就提醒
 $("fName").oninput = () => {
